@@ -31,7 +31,7 @@ class Chunker(object):
             data = f.readlines()
 
         file_string = ''.join(data)
-        self._set_chunks(file_string)
+        self._set_chunks(key, file_string)
 
     def _set_chunks(self, key_prefix, data):
         index = 0

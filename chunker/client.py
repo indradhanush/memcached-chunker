@@ -3,15 +3,17 @@ Memcache chunker
 """
 
 # System imports
-import tempfile
+import binascii
+import hashlib
 
 # third party imports
 from pymemcache.client.base import Client
 
 # local imports
 from chunker.exceptions import (
+    FileNotFound,
     SetFileFailed,
-    FileNotFound
+    SetMetadataFailed
 )
 
 
@@ -31,8 +33,8 @@ class Chunker(object):
         return self._client
 
     @staticmethod
-    def _get_key(prefix, index):
-        return '{prefix}-{index}'.format(prefix=prefix, index=index)
+    def _get_key(prefix, suffix):
+        return '{prefix}-{suffix}'.format(prefix=prefix, suffix=suffix)
 
     def set_file(self, key, file_path):
         with open(file_path, 'r') as f:
@@ -45,13 +47,28 @@ class Chunker(object):
         index = 0
         low = 0
 
+        hashes = []
+
         while low <= len(data):
-            key = self._get_key(key_prefix, index=index)
-            if self.client.set(key, data[low:low+self.chunk_size]) is False:
+            key = self._get_key(key_prefix, index)
+            chunk = data[low:low+self.chunk_size]
+
+            chunk_hash = hashlib.pbkdf2_hmac('sha1', chunk, '', 80)
+            hashes.append(binascii.hexlify(chunk_hash))
+
+            if self.client.set(key, chunk) is False:
                 raise SetFileFailed
 
             low += self.chunk_size
             index += 1
+
+        self._set_metadata(key_prefix, ','.join(hashes))
+
+    def _set_metadata(self, key_prefix, metadata):
+        key = self._get_key(key_prefix, 'metadata')
+
+        if self.client.set(key, metadata) is False:
+            raise SetMetadataFailed
 
     def get_file(self, key, file_path):
         chunks = self._get_chunks(key)

@@ -9,3 +9,7 @@ class SetMetadataFailed(Exception):
 
 class SetFileFailed(Exception):
     pass
+
+
+class FileNotFound(Exception):
+    pass

@@ -30,8 +30,8 @@ class Chunker(object):
 
         return self._client
 
-    def set_file(self, key, file_obj):
-        with open(file_obj, 'r') as f:
+    def set_file(self, key, file_path):
+        with open(file_path, 'r') as f:
             data = f.readlines()
 
         file_string = ''.join(data)

@@ -31,9 +31,8 @@ class Chunker(object):
         return self._client
 
     def set_file(self, key, file_obj):
-        data = []
         with open(file_obj, 'r') as f:
-            data.append(f.readlines())
+            data = f.readlines()
 
         file_string = ''.join(data)
         chunks = self._get_chunks(key, file_string)

@@ -3,6 +3,7 @@ Tests for Memcache chunker
 """
 
 # System imports
+import os
 import tempfile
 from unittest.case import TestCase
 
@@ -35,3 +36,29 @@ class ChunkerTestCase(TestCase):
         self.assertEqual(self.chunker.client.get('test-1'), 'bbbbbbbbbb')
         self.assertEqual(self.chunker.client.get('test-2'), 'cccccccccc')
         self.assertEqual(self.chunker.client.get('test-3'), 'dddddd')
+
+    def test__get_chunks(self):
+        with tempfile.NamedTemporaryFile() as f:
+            f.write(self.test_string)
+            f.flush()
+            self.chunker.set_file('test', f.name)
+
+        chunks = self.chunker._get_chunks('test')
+
+        self.assertEqual(chunks[0], 'aaaaaaaaaa')
+        self.assertEqual(chunks[1], 'bbbbbbbbbb')
+        self.assertEqual(chunks[2], 'cccccccccc')
+        self.assertEqual(chunks[3], 'dddddd')
+
+    def test_get_file(self):
+        with tempfile.NamedTemporaryFile() as f:
+            f.write(self.test_string)
+            f.flush()
+            self.chunker.set_file('test', f.name)
+
+        self.chunker.get_file('test', 'test_file')
+
+        with open('test_file', 'r') as f:
+            self.assertEqual(self.test_string, ''.join(f.readlines()))
+
+        os.remove('test_file')

@@ -11,7 +11,9 @@ from pymemcache.client.base import Client
 
 # local imports
 from chunker.exceptions import (
+    FileCorrupted,
     FileNotFound,
+    MetadataNotAvailable,
     SetFileFailed,
     SetMetadataFailed
 )
@@ -36,6 +38,11 @@ class Chunker(object):
     def _get_key(prefix, suffix):
         return '{prefix}-{suffix}'.format(prefix=prefix, suffix=suffix)
 
+    @staticmethod
+    def _get_chunk_hash(chunk):
+        sha1_hash = hashlib.pbkdf2_hmac('sha1', chunk, '', 80)
+        return binascii.hexlify(sha1_hash)
+
     def set_file(self, key, file_path):
         with open(file_path, 'r') as f:
             data = f.readlines()
@@ -53,8 +60,7 @@ class Chunker(object):
             key = self._get_key(key_prefix, index)
             chunk = data[low:low+self.chunk_size]
 
-            chunk_hash = hashlib.pbkdf2_hmac('sha1', chunk, '', 80)
-            hashes.append(binascii.hexlify(chunk_hash))
+            hashes.append(self._get_chunk_hash(chunk))
 
             if self.client.set(key, chunk) is False:
                 raise SetFileFailed
@@ -75,6 +81,7 @@ class Chunker(object):
         if not chunks:
             raise FileNotFound
 
+        self._verify_metadata(key, chunks)
         with open(file_path, 'w') as f:
             f.write(''.join(chunks))
 
@@ -91,3 +98,16 @@ class Chunker(object):
             index += 1
 
         return chunks
+
+    def _verify_metadata(self, key, chunks):
+        metadata_key = self._get_key(key, 'metadata')
+        hash_str = self.client.get(metadata_key)
+        if hash_str is None:
+            raise MetadataNotAvailable
+
+        hashes = hash_str.split(',')
+        if any(
+                sha1_hash != self._get_chunk_hash(chunk)
+                for sha1_hash, chunk in zip(hashes, chunks)
+        ):
+            raise FileCorrupted

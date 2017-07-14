@@ -13,3 +13,11 @@ class SetFileFailed(Exception):
 
 class FileNotFound(Exception):
     pass
+
+
+class FileCorrupted(Exception):
+    pass
+
+
+class MetadataNotAvailable(Exception):
+    pass

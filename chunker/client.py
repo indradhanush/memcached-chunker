@@ -2,15 +2,11 @@
 Memcache chunker
 """
 
-# system imports
-from collections import OrderedDict
-
 # third party imports
 from pymemcache.client.base import Client
 
 # local imports
 from chunker.exceptions import (
-    SetMetadataFailed,
     SetFileFailed
 )
 
@@ -35,32 +31,16 @@ class Chunker(object):
             data = f.readlines()
 
         file_string = ''.join(data)
-        chunks = self._get_chunks(key, file_string)
+        self._set_chunks(file_string)
 
-        self._set_metadata(key, chunks.keys())
-
-        for key, value in chunks.items():
-            if self.client.set(key, value) is False:
-                raise SetFileFailed
-
-    def _get_chunks(self, key_prefix, data):
-        chunks = OrderedDict()
-
+    def _set_chunks(self, key_prefix, data):
         index = 0
         low = 0
+
         while low <= len(data):
-            chunk = data[low:low+self.chunk_size]
-
             key = '{prefix}-{index}'.format(prefix=key_prefix, index=index)
-
-            chunks[key] = chunk
+            if self.client.set(key, data[low:low+self.chunk_size]) is False:
+                raise SetFileFailed
 
             low += self.chunk_size
             index += 1
-
-        return chunks
-
-    def _set_metadata(self, key, meta_data):
-        key = '{name}-metadata'.format(name=key)
-        if self.client.set(key, ','.join(meta_data)) is False:
-            raise SetMetadataFailed

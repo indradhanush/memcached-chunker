@@ -3,6 +3,8 @@ Tests for Memcache chunker
 """
 
 # System imports
+import binascii
+import hashlib
 import os
 import tempfile
 from unittest.case import TestCase
@@ -17,6 +19,20 @@ class ChunkerTestCase(TestCase):
     def setUpClass(cls):
         cls.chunker = Chunker('localhost', 11211, 10)
         cls.test_string = 'aaaaaaaaaabbbbbbbbbbccccccccccdddddd'
+        cls.hashes = [
+            binascii.hexlify(
+                hashlib.pbkdf2_hmac('sha1', 'aaaaaaaaaa', '', 80)
+            ),
+            binascii.hexlify(
+                hashlib.pbkdf2_hmac('sha1', 'bbbbbbbbbb', '', 80)
+            ),
+            binascii.hexlify(
+                hashlib.pbkdf2_hmac('sha1', 'cccccccccc', '', 80)
+            ),
+            binascii.hexlify(
+                hashlib.pbkdf2_hmac('sha1', 'dddddd', '', 80)
+            )
+        ]
 
     def test__set_chunks(self):
         self.chunker._set_chunks('test', self.test_string)
@@ -36,6 +52,8 @@ class ChunkerTestCase(TestCase):
         self.assertEqual(self.chunker.client.get('test-1'), 'bbbbbbbbbb')
         self.assertEqual(self.chunker.client.get('test-2'), 'cccccccccc')
         self.assertEqual(self.chunker.client.get('test-3'), 'dddddd')
+
+        self.assertEqual(self.chunker.client.get('test-metadata'), ','.join(self.hashes))
 
     def test__get_chunks(self):
         with tempfile.NamedTemporaryFile() as f:

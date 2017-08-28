@@ -1,5 +1,6 @@
 # System imports
 from memory_profiler import profile
+import os
 
 # Local imports
 from chunker.client import Chunker
@@ -9,6 +10,8 @@ from chunker.client import Chunker
 def run_profile_test(file_path, chunk_size):
     chunker = Chunker('localhost', 11211, chunk_size)
     chunker.set_file('profiler', file_path)
+    chunker.get_file('profiler', 'test_file')
+    os.remove('test_file')
 
 
 if __name__ == '__main__':

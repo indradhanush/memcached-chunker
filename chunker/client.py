@@ -43,32 +43,34 @@ class Chunker(object):
         sha1_hash = hashlib.pbkdf2_hmac('sha1', chunk, '', 80)
         return binascii.hexlify(sha1_hash)
 
-    def set_file(self, key, file_path):
-        with open(file_path, 'r') as f:
-            data = f.readlines()
+    def set_file(self, key_prefix, file_path):
+        f = open(file_path, 'r')
 
-        file_string = ''.join(data)
-        self._set_chunks(key, file_string)
-
-    def _set_chunks(self, key_prefix, data):
         index = 0
-        low = 0
 
         hashes = []
 
-        while low <= len(data):
+        while True:
+            # TODO: handle when an entire chunk is not read
+            data = f.read(self.chunk_size)
+
+            if not data:
+                break
+
             key = self._get_key(key_prefix, index)
-            chunk = data[low:low+self.chunk_size]
+            chunk = data
 
             hashes.append(self._get_chunk_hash(chunk))
 
-            if self.client.set(key, chunk) is False:
-                raise SetFileFailed
+            self._set_chunk(key, chunk)
 
-            low += self.chunk_size
             index += 1
 
         self._set_metadata(key_prefix, ','.join(hashes))
+
+    def _set_chunk(self, key, data):
+        if self.client.set(key, data) is False:
+            raise SetFileFailed
 
     def _set_metadata(self, key_prefix, metadata):
         key = self._get_key(key_prefix, 'metadata')

@@ -44,6 +44,7 @@ class ChunkerTestCase(TestCase):
         self.assertEqual(self.chunker.client.get('test-1'), 'bbbbbbbbbb')
         self.assertEqual(self.chunker.client.get('test-2'), 'cccccccccc')
         self.assertEqual(self.chunker.client.get('test-3'), 'dddddd')
+        self.assertEqual(self.chunker.client.get('test-4'), None)
 
         self.assertEqual(self.chunker.client.get('test-metadata'), ','.join(self.hashes))
 
@@ -59,6 +60,7 @@ class ChunkerTestCase(TestCase):
         self.assertEqual(chunks[1], 'bbbbbbbbbb')
         self.assertEqual(chunks[2], 'cccccccccc')
         self.assertEqual(chunks[3], 'dddddd')
+        self.assertEqual(len(chunks), 4)
 
     def test_get_file(self):
         with tempfile.NamedTemporaryFile() as f:
